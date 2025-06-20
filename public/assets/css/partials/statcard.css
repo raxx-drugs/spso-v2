@@ -1,0 +1,59 @@
+.statcard-container{
+    display: flex;
+    width: 100%;
+    gap: 2rem;
+    flex-wrap: wrap;
+    padding: 1rem;
+}
+.statcard-body{
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: 1fr 1fr 1fr;
+    grid-template-areas: 
+        "statcard-header statcard-icon"
+        "statcard-value statcard-icon"
+        "statcard-description statcard-icon";
+    align-items: center;
+    padding: .5rem 1rem;
+    border-radius: 0.5rem;
+    background-color: var(--card-bg-color, #f8f9fa);
+    box-shadow: 2px 4px 4px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+    color: var(--text-color, #212529);
+}
+.statcard-header{
+    grid-area: statcard-header;
+    display: flex;
+    justify-content: start;
+    align-items: center;
+    font-weight: 600;
+}
+.statcard-value{
+    grid-area: statcard-value;
+    display: flex;
+    justify-content: start;
+    align-items: center;
+
+    font-weight: bold;
+}
+.statcard-description{
+    grid-area: statcard-description;
+    display: flex;
+    justify-content: start;
+    align-items: center;
+ 
+}
+.statcard-icon{
+     grid-area: statcard-icon;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+}
+.statcard-icon i{
+    font-size: 2rem;
+    color: var(--icon-color, #207891);
+
+}

@@ -88,5 +88,11 @@ class Autoload extends AutoloadConfig
      *
      * @var list<string>
      */
-    public $helpers = [];
+    public $helpers = [
+        'custom',
+        'date',
+        'expiry',
+        'notification',
+        'format_status'
+    ];
 }

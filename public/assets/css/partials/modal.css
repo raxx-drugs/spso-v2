@@ -1,0 +1,113 @@
+.modal-body-scroll {
+  max-height: 70vh;
+  padding-right: 0.5rem;
+  padding-left: 0.5rem;
+
+}
+
+.modal-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  background-color: #eef4f8;
+  color: #1b657a;
+  padding: 1.25rem;
+  border-radius: 12px;
+}
+
+.full-width {
+  grid-column: span 2;
+}
+
+.modal-input,
+.modal-select {
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #cfd8dc;
+  transition: 0.2s ease;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+  color: #1b657a;
+  width: 100%;
+}
+
+.modal-input:focus,
+.modal-select:focus {
+  background: #fff;
+  border-color: #1b657a;
+  box-shadow: 0 0 0 3px rgba(27, 101, 122, 0.15);
+  outline: none;
+}
+
+.select-wrapper,
+.modal-date {
+  position: relative;
+  width: 100%;
+}
+
+.select-icon,
+.modal-date i.fa-calendar {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+  pointer-events: none;
+  font-size: 0.9rem;
+}
+
+.mb-3 {
+  margin-bottom: 1rem;
+}
+
+/* Modern field label with icon */
+.field-label {
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #1b657a;
+  font-size: 0.88rem;
+}
+
+
+/* Hide the original file input */
+.file-hidden {
+  display: none;
+}
+
+/* Container for custom file upload */
+.custom-file-upload {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Styled label acting as button */
+.upload-btn {
+  background-color: #1b657a;
+  color: #ffffff;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.upload-btn:hover {
+  background-color: #145061;
+}
+
+/* File name display */
+.file-name {
+  font-size: 0.85rem;
+  color: #333;
+  font-style: italic;
+}
+
+

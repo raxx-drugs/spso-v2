@@ -1,0 +1,140 @@
+.employee-manage-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 8rem auto 1fr;
+  grid-template-areas:
+    "employee-manage-row-1"
+    "employee-manage-row-2-col-1"
+    "employee-manage-row-3";
+  background-color: #EEF9FF;
+  border-radius: 8px;
+  max-height: 70vh;
+  
+}
+
+.employee-manage-row-1 {
+  grid-area: employee-manage-row-1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem 1.5rem;
+  background-color: #EEF9FF;
+}
+
+.line {
+  flex: 1;
+  height: 2px;
+  background-color: #1b657a;
+}
+
+.employee-manage-img img {
+  height: 100px;
+  width: 100px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid #1b657a;
+}
+
+.employee-manage-row-2-col-1 {
+  grid-area: employee-manage-row-2-col-1;
+  background-color: #EEF9FF;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+
+/* The 3rd row: buttons and data side by side */
+.employee-manage-row-3 {
+  grid-area: employee-manage-row-3;
+  display: grid;
+  grid-template-columns: 220px 1fr; /* sidebar + content */
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background-color: #EEF9FF;
+  overflow-y: auto;
+}
+
+.employee-manage-sidebar {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border: solid 1px #1b657a;
+ 
+}
+
+.employee-manage-sidebar .info-btn {
+  padding: 0.6rem;
+  font-size: 0.85rem;
+  background-color: #ffffff;
+  color: #1b657a;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.employee-manage-sidebar .info-btn:hover,
+.employee-manage-sidebar .info-btn.active {
+  background-color: #1b657a;
+  color: #ffffff;
+  border-color: #1b657a;  
+}
+
+.employee-manage-section {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-y: auto;
+  height: 100%;
+  border: solid 1px #1b657a;
+}
+
+.employee-manage-row-2-col-2 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /*add add lang*/
+  gap: 1.5rem 2rem; /* vertical and horizontal spacing */
+  width: 100%;
+  
+
+}
+.employee-manage-row-2-col-2 p {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.9rem;
+  color: #1b657a;
+  align-items: center;       /* centers children horizontally */
+  text-align: center;        /* centers text inside <strong> */
+}
+
+.employee-manage-row-2-col-2 p strong {
+  margin-bottom: 0.3rem;
+  font-weight: 600;
+  justify-content: center;   /* flex properties won't apply here because strong is inline, so safe to remove */
+  align-items: center;       /* same as above, can be removed */
+  width: 100%;
+}
+
+.employee-manage-row-2-col-2 input {
+  width: 100%;
+  max-width: 200px;          /* limit input width for neatness */
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid #ffffff;    /* changed to visible border */
+  background-color: #ffffff;
+  font-size: 0.9rem;
+  color: #555;
+  box-sizing: border-box;
+  text-align: center;        /* center text inside inputs */
+}
+.d-none {
+  display: none !important;
+}

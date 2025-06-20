@@ -1,0 +1,108 @@
+.announcement-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr;
+    grid-template-areas: 
+      "announcement-row-1 announcement-row-1"
+      "announcement-row-2-col-1 announcement-row-2-col-2";
+    gap: 1rem;
+    padding: 1rem;
+    background-color: #EEF9FF;
+    border-radius: 8px;
+    max-height: 70vh; /* or adjust as needed */
+  }
+  
+  .announcement-row-1 {
+    grid-area: announcement-row-1;
+    font-size: 1.2rem;
+    color: #ffffff;
+    background-color: #1b657a;
+    padding: 1rem;
+    border-radius: 6px;
+    text-align: center;
+  }
+  
+  .announcement-title {
+    display: flex;
+    align-items: left;
+    gap: 1rem;
+    margin: 0;
+    padding-left: 1rem;
+    color: #ffffff;
+  }
+  
+  .announcement-title span {
+    background-color: #1b657a;
+    font-weight: bold;
+    font-size: 1.2rem;
+  }
+  
+  .announcement-row-2-col-1 {
+    grid-area: announcement-row-2-col-1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #ffffff;
+    padding: 2rem;
+    border-radius: 6px;
+    flex-direction: column;
+  }
+  
+  .announcement-row-2-col-2 {
+    grid-area: announcement-row-2-col-2;
+    background-color: #ffffff;
+    padding: 1rem;
+    border-radius: 6px;
+    overflow-y: auto;
+  }
+  
+  .announcement-row-2-col-2 p {
+    margin-bottom: 1rem;
+    color: #1b657a;
+  }
+  
+  .announcement-row-2-col-2 input {
+    width: 100%;
+    padding: 0.4rem;
+    background-color: #ffffff;
+    border: 1px solid #ffffff;
+    border-radius: 4px;
+  }
+  
+  .attachments > img {
+    width: 100%;
+    max-width: 300px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .remarks {
+    display: flex;
+    flex-direction: column;
+    color: #1b657a;
+    margin-top: 10px;
+    background-color: #ffffff;
+    border: solid 2px #ffffff;
+    width: 100%;
+    height: 100px;
+  }
+  
+  .remarks label {
+    margin-bottom: 4px;
+    font-size: 14px;
+  }
+  
+  .remarks textarea.announcement_remarks {
+    flex: 1;
+    resize: none;
+    width: 100%;
+    height: 100%;
+    padding: 8px 12px;
+    font-size: 14px;
+    border: 1px solid #ffffff;
+    border-radius: 4px;
+    overflow-y: auto;
+    background-color: transparent;
+    color: #333;
+  }
+  
