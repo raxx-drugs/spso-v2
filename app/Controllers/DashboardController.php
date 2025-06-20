@@ -55,47 +55,73 @@ class DashboardController extends BaseController
         ]);
         return view('pages/portal/download');
     }
-
-    public function page_equipment()
+    public function page_inventory()
     {
         session()->set([
-            'title' => "Equipments",
+            'title' => "Inventory",
             'current_page' => 'employee-portal',
         ]);
-        return view('pages/portal/it_equipment');
+        return view('pages/portal/inventory');
     }
 
-        public function page_office_supply()
-    {
-        session()->set([
-            'title' => "Office Supply",
-            'current_page' => 'employee-portal',
-        ]);
-        return view('pages/portal/office_supply');
-    }
 
     /***********************************************************************************************
      * Request Pages
      ***********************************************************************************************/
-    public function page_make_request()
+    public function page_req_it_equipment()
     {
         session()->set([
-            'title' => "Request",
+            'title' => "Request IT Equipment",
             'current_page' => 'request',
         ]);
-        return view('pages/request/request');
+        return view('pages/request/req_it_equipment');
     }
 
-    public function page_list_request()
+    public function page_req_it_office_supply()
     {
         session()->set([
-            'title' => "List of Request",
+            'title' => "Request Office Supply",
             'current_page' => 'request',
         ]);
-        return view('pages/request/list_request');
+        return view('pages/request/req_office_supply');
+    }
+        public function page_req_leave()
+    {
+        session()->set([
+            'title' => "Request Leave",
+            'current_page' => 'request',
+        ]);
+        return view('pages/request/req_leave');
+    }
+        public function page_req_it_support()
+    {
+        session()->set([
+            'title' => "Request It Support",
+            'current_page' => 'request',
+        ]);
+        return view('pages/request/req_it_support');
+    }
+        /***********************************************************************************************
+     * Attendance Pages
+     ***********************************************************************************************/
+    public function page_attendance()
+    {
+        session()->set([
+            'title' => "Attendance",
+            'current_page' => 'attendance',
+        ]);
+        return view('pages/attendance/attendance');
+    }
+    public function page_attendance_logs()
+    {
+        session()->set([
+            'title' => "Attendance Logs",
+            'current_page' => 'attendance',
+        ]);
+        return view('pages/attendance/attendance_log');
     }
     /***********************************************************************************************
-     * Installer Pages
+     * Accomplishment Pages
      ***********************************************************************************************/
     public function page_accomplishment()
     {
@@ -103,7 +129,28 @@ class DashboardController extends BaseController
             'title' => "Accomplishment",
             'current_page' => 'accomplishment',
         ]);
-        return view('pages/accomplishment');
+        return view('pages/accomplishment/accomplishment');
+    }
+
+    /***********************************************************************************************
+     * Inventory Pages
+     ***********************************************************************************************/
+    public function page_it_equipment()
+    {
+        session()->set([
+            'title' => "Equipments",
+            'current_page' => 'inventory',
+        ]);
+        return view('pages/inventory/it_equipment');
+    }
+
+    public function page_office_supply()
+    {
+        session()->set([
+            'title' => "Office Supply",
+            'current_page' => 'inventory',
+        ]);
+        return view('pages/inventory/office_supply');
     }
 
     /***********************************************************************************************
@@ -115,7 +162,7 @@ class DashboardController extends BaseController
             'title' => "Installer",
             'current_page' => 'installer',
         ]);
-        return view('pages/installer');
+        return view('pages/installer/installer');
     }
 
 }

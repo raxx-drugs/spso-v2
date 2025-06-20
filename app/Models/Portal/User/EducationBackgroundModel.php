@@ -26,7 +26,6 @@ class EducationBackgroundModel extends Model
         "user_graduate_studies",
         "user_academic_honors",
         "user_id_fk",
-
     ];
 
     protected bool $allowEmptyInserts = false;

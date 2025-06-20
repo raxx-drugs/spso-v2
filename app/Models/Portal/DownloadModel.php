@@ -13,7 +13,7 @@ class DownloadModel extends Model
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        "download_filename",
+        "download_file_name",
         "download_file_type",
         "download_file",
         "download_remarks",

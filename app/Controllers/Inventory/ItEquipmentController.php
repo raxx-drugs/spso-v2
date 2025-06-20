@@ -19,11 +19,11 @@ class ItEquipmentController extends BaseController
             "image"             => "it_equipment_image",
             "unit"              => "it_equipment_unit",
             "serial_number"     => "it_equipment_serial_number",
-            "system_no"         => "it_system_no",
-            "user"              => "it_equipment_user",
+            "system_no"         => "it_equipment_system_no",
             "requisition"       => "it_equipment_requisition",
+            "stock"             => "it_equipment_stock",
             "status"            => "it_equipment_status",
-            "unit_value"        => "it_unit_value",
+            "unit_value"        => "it_equipment_unit_value",
             "remarks"           => "it_equipment_remarks",
         ];
 
@@ -45,131 +45,179 @@ class ItEquipmentController extends BaseController
     /**
      * Add new IT equipment.
      */
-    public function add()
-    {
-        $post = $this->request->getPost();
-        $file = $this->request->getFile('image');
+   public function add()
+{
+    $post = $this->request->getPost();
+    $file = $this->request->getFile('image');
 
-        if ($file && $file->isValid() && !$file->hasMoved()) {
-            $binary = file_get_contents($file->getTempName());
+    if ($file && $file->isValid() && !$file->hasMoved()) {
+        $binary = file_get_contents($file->getTempName());
 
-            $post['image'] = $binary;
-        }
-
-        $data = $this->extractData($post);
-
-        if ($this->itEquipmentObj->insert($data)) {
-            $this->logActivity('create', 'IT Equipment', 'Successfully added IT equipment.');
-            return redirect()->back()->with('success', 'IT Equipment added successfully.');
-        }
-
-        return redirect()->back()
-            ->withInput()
-            ->with('error', 'Failed to add IT Equipment.')
-            ->with('errors', $this->itEquipmentObj->errors());
+        $post['image'] = $binary;
     }
+
+    $data = $this->extractData($post);
+
+    // Attach file data if present
+    if (!empty($post['image'])) {
+        $data['it_equipment_image'] = $post['image'];
+    }
+
+    if ($this->itEquipmentObj->insert($data)) {
+        // pinagdagdag na message
+        $this->logActivity('create', 'IT Equipment', 'Successfully added IT equipment.');
+        return redirect()->back()->with('success', 'IT Equipment added successfully.');
+    }
+
+    return redirect()->back()
+        ->withInput()
+        ->with('error', 'Failed to add IT Equipment.')
+        ->with('errors', $this->itEquipmentObj->errors());
+}
+
 
     /**
      * Fetch all IT equipment.
      */
-    public function fetchAll()
-    {
-        $items = $this->itEquipmentObj->findAll();
-        $data = [];
-        $viewModalId = 'viewEquipmentModal';
-        $index = 1;
+ public function fetchAll()
+{
+    $equipmentData = $this->itEquipmentObj->findAll();
+    $data = [];
 
-        foreach ($items as $row) {
-            $id = $row['it_equipment_id'];
-            $data[] = [
-                $index++,
-                $id,
-                $row['it_equipment_unit'] ?? 'N/A',
-                $row['it_equipment_serial_number'] ?? '',
-                $row['it_system_no'] ?? '',
-                $row['it_equipment_user'] ?? '',
-                $row['it_equipment_status'] ?? '',
-                $row['it_equipment_remarks'] ?? '',
-                view('components/action_button', [
-                    'id'          => $id,
-                    'view'        => base_url("api/it-equipment/{$id}"),
-                    'viewModalId' => $viewModalId,
-                    'delete'      => base_url("api/it-equipment/delete/{$id}"),
-                    'archive'     => base_url("api/it-equipment/archive/{$id}"),
-                ]),
-            ];
-        }
+    $viewModalId = 'viewEquipmentModal';
+    $index = 1; // Start counter at 1
 
-        return $this->response->setJSON(['data' => $data]);
+    foreach ($equipmentData as $row) {
+        $id = $row['it_equipment_id'];
+        $data[] = [
+            $index++, // Use incremented index instead of actual ID
+            $row['it_equipment_unit'] ?? 'N/A',
+            $row['it_equipment_serial_number'] ?? '',
+            format_status($row['it_equipment_status'] ?? 'N/A'),
+            view('components/buttons/action_button', [
+                'id'          => $id,
+                'view'        => base_url("api/inventory/it-equipment/{$id}"),
+                'viewModalId' => $viewModalId,
+                'delete'      => base_url("api/inventory/it-equipment/delete/{$id}"),
+                'archive'     => base_url("api/inventory/it-equipment/archive/{$id}"),
+            ]),
+        ];
     }
+
+    return $this->response->setJSON(['data' => $data]);
+}
 
     /**
      * Fetch single IT equipment.
      */
-    public function fetch($id)
-    {
-        $item = $this->itEquipmentObj->find($id);
+ public function fetch($id)
+{
+    $item = $this->itEquipmentObj->find($id);
 
-        if ($item) {
-            return $this->response->setJSON([
-                'data' => $item,
-                'status' => 'success',
-                'message' => 'Data fetched successfully.',
-            ]);
-        }
+    if ($item) {
+        // Fix malformed UTF-8 characters
+        array_walk_recursive($item, function (&$val) {
+            if (is_string($val) && !mb_check_encoding($val, 'UTF-8')) {
+                $val = mb_convert_encoding($val, 'UTF-8', 'UTF-8');
+            }
+        });
 
+        return $this->response->setJSON([
+            'data' => $item,
+            'status' => 'success',
+            'message' => 'Data fetched successfully.',
+        ]);
+    }
+
+    return $this->response->setJSON([
+        'status' => 'error',
+        'message' => 'Item not found.',
+    ])->setStatusCode(404);
+}
+
+    /**
+     * Update IT equipment.
+     */
+   public function update($id)
+{
+    if (!$this->itEquipmentObj->find($id)) {
         return $this->response->setJSON([
             'status' => 'error',
             'message' => 'Item not found.',
         ])->setStatusCode(404);
     }
 
-    /**
-     * Update IT equipment.
-     */
-    public function update($id)
-    {
-        if (!$this->itEquipmentObj->find($id)) {
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Item not found.',
-            ])->setStatusCode(404);
-        }
+    $post = $this->request->getVar(); // Changed from getRawInput() to match template
+    $data = $this->extractData($post);
 
-        $post = $this->request->getRawInput();
-        $data = $this->extractData($post);
-
-        if ($this->itEquipmentObj->update($id, $data)) {
-            $this->logActivity('update', 'IT Equipment', 'Updated IT equipment.');
-            return $this->response->setJSON([
-                'status' => 'success',
-                'message' => 'Data updated successfully.',
-            ]);
-        }
-
-        return $this->response->setJSON([
-            'status' => 'error',
-            'message' => 'Failed to update.',
-            'errors' => $this->itEquipmentObj->errors(),
-        ])->setStatusCode(400);
+    if ($this->itEquipmentObj->update($id, $data)) {
+        $this->logActivity('update', 'IT Equipment', 'Successfully updated IT equipment.');
+        return redirect()->back()->with('success', 'IT Equipment updated successfully.');
     }
+
+    return $this->response->setJSON([
+        'status' => 'error',
+        'message' => 'Failed to update data.',
+        'errors' => $this->itEquipmentObj->errors()
+    ])->setStatusCode(400);
+}
 
     /**
      * Archive IT equipment.
      */
-    public function archive($id)
-    {
-        return $this->handleRemoveOrArchive($id, 'archive');
+  public function archive($id)
+{
+    if ($itEquipmentData = $this->itEquipmentObj->find($id)) {
+        $dataToArchive = [
+            "archived_role"        => $_SESSION['role'],
+            "archived_email"       => $_SESSION['email'],
+            "archived_item_type"   => "it_equipment",
+            "archived_item_data"   => json_encode($itEquipmentData),
+            "archived_description" => "the item is archived"
+        ];
+
+        if ($this->archivedFileObj->insert($dataToArchive)) {
+            if ($this->itEquipmentObj->delete($id)) {
+                return redirect()->back()->with('success', 'IT Equipment data successfully archived!');
+            } else {
+                return redirect()->back()
+                    ->with('error', 'Failed to delete IT Equipment.')
+                    ->with('errors', $this->itEquipmentObj->errors());
+            }
+        }
     }
+
+    return redirect()->back()->with('error', 'IT Equipment not found.');
+}
 
     /**
      * Delete IT equipment.
      */
-    public function delete($id)
-    {
-        return $this->handleRemoveOrArchive($id, 'delete');
+  public function delete($id)
+{
+    if ($itEquipmentData = $this->itEquipmentObj->find($id)) {
+        $dataToDelete = [
+            "deleted_role"        => $_SESSION['role'],
+            "deleted_email"       => $_SESSION['email'],
+            "deleted_item_type"   => "it_equipment",
+            "deleted_item_data"   => json_encode($itEquipmentData),
+            "deleted_description" => "the item is deleted"
+        ];
+
+        if ($this->deletedFileObj->insert($dataToDelete)) {
+            if ($this->itEquipmentObj->delete($id)) {
+                return redirect()->back()->with('success', 'IT Equipment data successfully deleted!');
+            } else {
+                return redirect()->back()
+                    ->with('error', 'Failed to delete IT Equipment.')
+                    ->with('errors', $this->itEquipmentObj->errors());
+            }
+        }
     }
 
+    return redirect()->back()->with('error', 'IT Equipment not found.');
+}
+    // DI KO TO GINAGALAW "private function handleRemoveOrArchive($id, $type = 'archive')"
     private function handleRemoveOrArchive($id, $type = 'archive')
     {
         $record = $this->itEquipmentObj->find($id);
@@ -202,18 +250,20 @@ class ItEquipmentController extends BaseController
     public function getStats()
     {
         $total = $this->itEquipmentObj->countAll();
-        $active = $this->itEquipmentObj->where('it_equipment_status', 'Active')->countAllResults();
-        $inactive = $this->itEquipmentObj->where('it_equipment_status', 'Inactive')->countAllResults();
-        $archived = $this->itEquipmentObj->where('it_equipment_status', 'Archived')->countAllResults();
+        $working = $this->itEquipmentObj->where('it_equipment_status', 'Working')->countAllResults();
+        $damaged = $this->itEquipmentObj->where('it_equipment_status', 'Damaged')->countAllResults();
+        $disposal = $this->itEquipmentObj->where('it_equipment_status', 'Disposal')->countAllResults();
 
         return $this->response->setJSON([
             'total' => $total,
-            'active' => $active,
-            'inactive' => $inactive,
-            'archived' => $archived,
+            'working' => $working,
+            'damaged' => $damaged,
+            'disposal' => $disposal,
         ]);
     }
 
+
+    // dont touch this
     /**
      * View image inline.
      */

@@ -43,28 +43,38 @@ class OfficeSupplyController extends BaseController
     /**
      * Add new office supply.
      */
-    public function add()
-    {
-        $post = $this->request->getPost();
-        $file = $this->request->getFile('image');
+ public function add()
+{
+    $post = $this->request->getPost();
+    $file = $this->request->getFile('image');
 
-        if ($file && $file->isValid() && !$file->hasMoved()) {
-            $binary = file_get_contents($file->getTempName());
-            $post['image'] = $binary;
-        }
+    if ($file && $file->isValid() && !$file->hasMoved()) {
+        $binary = file_get_contents($file->getTempName());
 
-        $data = $this->extractData($post);
-
-        if ($this->officeSupplyObj->insert($data)) {
-            $this->logActivity('create', 'Office Supply', 'Successfully added office supply.');
-            return redirect()->back()->with('success', 'Office supply added successfully.');
-        }
-
-        return redirect()->back()
-            ->withInput()
-            ->with('error', 'Failed to add office supply.')
-            ->with('errors', $this->officeSupplyObj->errors());
+        $post['image']      = $binary;
+        $post['image_name'] = $file->getClientName();
+        $post['image_type'] = $file->getClientMimeType();
     }
+
+    $data = $this->extractData($post);
+
+    // Attach image data if present
+    if (!empty($post['image'])) {
+        $data['office_supply_image']      = $post['image'];
+        $data['office_supply_name'] = $post['image_name'];
+        $data['office_supply_type'] = $post['image_type'];
+    }
+
+    if ($this->officeSupplyObj->insert($data)) {
+        $this->logActivity('create', 'Office Supply', 'Successfully added office supply.');
+        return redirect()->back()->with('success', 'Office supply added successfully.');
+    }
+
+    return redirect()->back()
+        ->withInput()
+        ->with('error', 'Failed to add office supply.')
+        ->with('errors', $this->officeSupplyObj->errors());
+}
 
     /**
      * Fetch all office supplies.
@@ -73,26 +83,25 @@ class OfficeSupplyController extends BaseController
     {
         $items = $this->officeSupplyObj->findAll();
         $data = [];
+
         $viewModalId = 'viewOfficeSupplyModal';
-        $index = 1;
+        $index = 1; // Start counter at 1
 
         foreach ($items as $row) {
             $id = $row['office_supply_id'];
             $data[] = [
-                $index++,
-                $id,
-                $row['office_supply_name'] ?? '',
+                $index++, // Use incremented index instead of ID
+                $row['office_supply_name'] ?? 'N/A',
                 $row['office_supply_code'] ?? '',
                 $row['office_supply_category'] ?? '',
                 $row['office_supply_stocks'] ?? '',
-                $row['office_supply_status'] ?? '',
-                $row['office_supply_description'] ?? '',
-                view('components/action_button', [
+                format_status($row['office_supply_status'] ?? 'N/A'),
+                view('components/buttons/action_button', [ // updated to match template's path
                     'id'          => $id,
-                    'view'        => base_url("api/office-supply/{$id}"),
+                    'view'        => base_url("api/inventory/office-supply/{$id}"),
                     'viewModalId' => $viewModalId,
-                    'delete'      => base_url("api/office-supply/delete/{$id}"),
-                    'archive'     => base_url("api/office-supply/archive/{$id}"),
+                    'delete'      => base_url("api/inventory/office-supply/delete/{$id}"),
+                    'archive'     => base_url("api/inventory/office-supply/archive/{$id}"),
                 ]),
             ];
         }
@@ -100,117 +109,143 @@ class OfficeSupplyController extends BaseController
         return $this->response->setJSON(['data' => $data]);
     }
 
+
     /**
      * Fetch single office supply.
      */
-    public function fetch($id)
-    {
-        $item = $this->officeSupplyObj->find($id);
+public function fetch($id)
+{
+    $item = $this->officeSupplyObj->find($id);
 
-        if ($item) {
-            return $this->response->setJSON([
-                'data' => $item,
-                'status' => 'success',
-                'message' => 'Data fetched successfully.',
-            ]);
-        }
+    if ($item) {
+        // Fix malformed UTF-8 characters
+        array_walk_recursive($item, function (&$val) {
+            if (is_string($val) && !mb_check_encoding($val, 'UTF-8')) {
+                $val = mb_convert_encoding($val, 'UTF-8', 'UTF-8');
+            }
+        });
 
+        return $this->response->setJSON([
+            'data' => $item,
+            'status' => 'success',
+            'message' => 'Data successfully fetched!',
+        ]);
+    }
+
+    return $this->response->setJSON([
+        'status' => 'error',
+        'message' => 'Item not found.',
+    ])->setStatusCode(404);
+}
+
+    /**
+     * Update office supply.
+     */
+    public function update($id)
+{
+    if (!$this->officeSupplyObj->find($id)) {
         return $this->response->setJSON([
             'status' => 'error',
             'message' => 'Item not found.',
         ])->setStatusCode(404);
     }
 
-    /**
-     * Update office supply.
-     */
-    public function update($id)
-    {
-        if (!$this->officeSupplyObj->find($id)) {
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Item not found.',
-            ])->setStatusCode(404);
-        }
+    $post = $this->request->getVar(); 
+    $data = $this->extractData($post);
 
-        $post = $this->request->getRawInput();
-        $data = $this->extractData($post);
-
-        if ($this->officeSupplyObj->update($id, $data)) {
-            $this->logActivity('update', 'Office Supply', 'Updated office supply.');
-            return $this->response->setJSON([
-                'status' => 'success',
-                'message' => 'Data updated successfully.',
-            ]);
-        }
-
-        return $this->response->setJSON([
-            'status' => 'error',
-            'message' => 'Failed to update.',
-            'errors' => $this->officeSupplyObj->errors(),
-        ])->setStatusCode(400);
+    if ($this->officeSupplyObj->update($id, $data)) {
+        $this->logActivity('update', 'Office Supply', 'Updated office supply.');
+        return redirect()->back()->with('success', 'Office supply updated successfully.');
     }
+
+    return $this->response->setJSON([
+        'status' => 'error',
+        'message' => 'Failed to update data.',
+        'errors' => $this->officeSupplyObj->errors()
+    ])->setStatusCode(400);
+}
 
     /**
      * Archive office supply.
      */
-    public function archive($id)
-    {
-        return $this->handleRemoveOrArchive($id, 'archive');
+  public function archive($id)
+{
+    if ($officeSupplyData = $this->officeSupplyObj->find($id)) {
+        $dataToArchive = [
+            "archived_role"       => $_SESSION['role'],
+            "archived_email"      => $_SESSION['email'],
+            "archived_item_type"  => "office_supply",
+            "archived_item_data"  => json_encode($officeSupplyData),
+            "archived_description"=> "the item is archived"
+        ];
+
+        if ($this->archivedFileObj->insert($dataToArchive)) {
+            if ($this->officeSupplyObj->delete($id)) {
+                return redirect()->back()->with('success', 'Office Supply successfully archived!');
+            } else {
+                return redirect()->back()
+                    ->with('error', 'Failed to delete office supply.')
+                    ->with('errors', $this->officeSupplyObj->errors());
+            }
+        }
     }
+
+    return redirect()->back()->with('error', 'Office Supply not found.');
+}
+
 
     /**
      * Delete office supply.
      */
-    public function delete($id)
-    {
-        return $this->handleRemoveOrArchive($id, 'delete');
-    }
-
-    private function handleRemoveOrArchive($id, $type = 'archive')
-    {
-        $record = $this->officeSupplyObj->find($id);
-        if (!$record) {
-            return redirect()->back()->with('error', 'Item not found.');
-        }
-
-        $logData = [
-            "{$type}d_role"        => session('role') ?? "admin",
-            "{$type}d_email"       => session('email') ?? "admin@gmail.com",
-            "{$type}d_item_type"   => "office_supply",
-            "{$type}d_item_data"   => json_encode($record),
-            "{$type}d_description" => "The item is {$type}d.",
+   public function delete($id)
+{
+    if ($officeSupplyData = $this->officeSupplyObj->find($id)) {
+        $dataToDelete = [
+            "deleted_role"        => $_SESSION['role'],
+            "deleted_email"       => $_SESSION['email'],
+            "deleted_item_type"   => "office_supply",
+            "deleted_item_data"   => json_encode($officeSupplyData),
+            "deleted_description" => "the item is deleted"
         ];
 
-        $logObj = $type === 'archive' ? $this->archivedFileObj : $this->deletedFileObj;
-
-        if ($logObj->insert($logData) && $this->officeSupplyObj->delete($id)) {
-            $this->logActivity($type, 'Office Supply', "Successfully {$type}d office supply.");
-            return redirect()->back()->with('success', "Item {$type}d successfully.");
+        if ($this->deletedFileObj->insert($dataToDelete)) {
+            if ($this->officeSupplyObj->delete($id)) {
+                return redirect()->back()->with('success', 'Office Supply successfully deleted!');
+            } else {
+                return redirect()->back()
+                    ->with('error', 'Failed to delete office supply.')
+                    ->with('errors', $this->officeSupplyObj->errors());
+            }
         }
-
-        return redirect()->back()->with('error', "Failed to {$type} item.")
-            ->with('errors', $this->officeSupplyObj->errors());
     }
+
+    return redirect()->back()->with('error', 'Office Supply not found.');
+}
+
 
     /**
      * Get office supply statistics.
      */
-    public function getStats()
-    {
-        $total = $this->officeSupplyObj->countAll();
-        $active = $this->officeSupplyObj->where('office_supply_status', 'Active')->countAllResults();
-        $inactive = $this->officeSupplyObj->where('office_supply_status', 'Inactive')->countAllResults();
-        $archived = $this->officeSupplyObj->where('office_supply_status', 'Archived')->countAllResults();
+  public function getStats()
+{
+    $total    = $this->officeSupplyObj->countAll();
+    $working   = $this->officeSupplyObj->where('office_supply_status', 'Working')->countAllResults();
+    $damaged = $this->officeSupplyObj->where('office_supply_status', 'Damaged')->countAllResults();
+    $disposal = $this->officeSupplyObj->where('office_supply_status', 'Disposal')->countAllResults();
 
-        return $this->response->setJSON([
-            'total' => $total,
-            'active' => $active,
-            'inactive' => $inactive,
-            'archived' => $archived,
-        ]);
-    }
+    return $this->response->setJSON([
+        'total'    => $total,
+        'working'   => $working,
+        'damaged' => $damaged,
+        'disposal' => $disposal,
+    ]);
+}
 
+
+
+
+
+    // DONT TOUCH THIS 
     /**
      * View image inline.
      */

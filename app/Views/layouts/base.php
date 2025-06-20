@@ -11,13 +11,23 @@ if (!session()->has('user')) {
 }
 ?>
 
+<!-- I want this php session for other components -->
+<?php 
+    if (session()->has('user')): 
+        $name = session('user'); 
+        $role = session('role'); 
+        $title = session('title'); 
+        $current_page = session('current_page');
+    endif;
+;?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <?= $this->include('layout/partials/head_links') ?>
+    <?= $this->include('layouts/partials/head_links') ?>
 </head>
 <body>
     <?= $this->renderSection('body') ?>
-    <?= $this->include('layout/partials/script_links') ?>
+    <?= $this->include('layouts/partials/script_links') ?>
 </body>
 </html>

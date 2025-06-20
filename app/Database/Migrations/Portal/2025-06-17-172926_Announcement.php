@@ -32,8 +32,20 @@ class Announcement extends Migration
                 "null" => false,
                 "constraint" => 100
             ],
+              //Filename
+            "announcement_file_name"=>[
+                "type" => "VARCHAR",
+                "null" => true,
+                "constraint" => 255
+            ],
+            //Filetype
+            "announcement_file_type"=>[
+                "type" => "VARCHAR",
+                "null" => true,
+                "constraint" => 50
+            ],
             // Attachment (binary)
-            "announcement_attachment" => [
+            "announcement_file" => [
                 "type" => "LONGBLOB",
                 "null" => true
             ],

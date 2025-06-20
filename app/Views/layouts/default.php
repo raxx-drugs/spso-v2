@@ -1,10 +1,11 @@
-<?= $this->extend('layout/base') ?>
+
+<?= $this->extend('layouts/base') ?>
 
 <?= $this->section('body') ?>
+    <link rel="stylesheet" href="<?= base_url('assets/css/layouts/default.css') ?>?v=1">
 
-<div class="main-wrapper">
-    <header class="header"><?= $this->include('components/header') ?></header>
-    <aside class="sidebar"><?= $this->include('components/sidebar') ?></aside>
+    <header ><?= $this->include('components/partials/header') ?></header>
+    <aside><?= $this->include('components/partials/sidebar') ?></aside>
 
     <main class="main" id="content">
         <div class="main-content">
@@ -19,6 +20,6 @@
             </div>
         </div>
     </main>
-</div>
+
 
 <?= $this->endSection() ?>

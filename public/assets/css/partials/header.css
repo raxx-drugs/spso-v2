@@ -1,0 +1,165 @@
+.header-nav-container {
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  padding: 20px 50px;
+  max-height: 66px;
+  background: linear-gradient(to right, #207890, #042E3C);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.2rem;
+  z-index: 100;
+}
+
+.nav-content{
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+}
+.nav-content-logo{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.nav-content-logo a img {
+  height: 50px;
+}
+
+.navbar-nav{
+  gap: 20px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+
+}
+.navbar-nav li{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 40px;
+  width: 40px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+
+.navbar-nav .scalable:hover {
+  transform: scale(1.1);
+}
+
+.navbar-nav li {
+  transition: transform 0.2s ease-in-out;
+}
+
+.custom-dropdown {
+  position: absolute;
+  top: 70px; /* adjust based on your navbar height */
+  right: 50px; /* adjust based on padding */
+  z-index: 1050;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.custom-dropdown.show {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.notification-btn{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.notification-btn span{
+  background-color: rgb(255, 50, 50);
+  font-size: .8rem;
+  position: absolute;
+  top: -4px;
+  right: -2px;
+  padding: 1px 2px ;
+  border-radius: 50%;
+}
+/* Hide dropdown toggle caret */
+.no-caret::after {
+    display: none !important;
+}
+
+.offcanvas-end {
+  width: 350px; /* Customize width */
+}
+
+.notification-card {
+  background-color: #ffffff;
+  border: 1px solid #ecf0f1;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+  transition: background-color 0.2s ease;
+}
+
+.notification-card:hover {
+  background-color: #ecf0f1;
+}
+
+/* Header background color */
+.notif-header {
+  background-color: #1b657a;
+  color: #ffffff;
+  padding: 1rem;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.btn-close-white {
+  filter: invert(1);
+}
+
+/* Notification Card */
+.notification-card {
+  background-color: #ffffff;
+  border: 1px solid #ecf0f1;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+  transition: background-color 0.2s ease;
+}
+
+.notification-card:hover {
+  background-color: #ecf0f1;
+}
+
+.notification-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+.expand-section {
+    transition: opacity 0.3s ease;
+}
+
+/* Mobile Responsive */
+@media (max-width: 1200px) {
+  nav{
+    padding: 20px;
+  }
+}
+
+/* Mobile Responsive */
+@media (max-width: 576px) {
+  nav{
+    padding: 20px;
+  }
+  .nav-content-logo span{
+    display: none;
+  }
+}
+
+
+

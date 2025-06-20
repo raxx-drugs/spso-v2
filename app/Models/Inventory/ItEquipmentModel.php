@@ -16,11 +16,11 @@ class ItEquipmentModel extends Model
         "it_equipment_image",
         "it_equipment_unit",
         "it_equipment_serial_number",
-        "it_system_no",
-        "it_equipment_user",
+        "it_equipment_system_no",
         "it_equipment_requisition",
+        "it_equipment_stock",
         "it_equipment_status",
-        "it_unit_value",
+        "it_equipment_unit_value",
         "it_equipment_remarks",
     ];
 

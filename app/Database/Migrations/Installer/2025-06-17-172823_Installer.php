@@ -31,11 +31,24 @@ class Installer extends Migration
                 "type" => "TEXT",
                 "null" => true
             ],
-            // Installer attachment (binary)
-            "installer_attachment" => [
+            //Installer Filename
+            "installer_file_name"=>[
+                "type" => "VARCHAR",
+                "null" => true,
+                "constraint" => 255
+            ],
+            //Installer Filetype
+            "installer_file_type"=>[
+                "type" => "VARCHAR",
+                "null" => true,
+                "constraint" => 50
+            ],
+            // Installer file (binary)
+            "installer_file" => [
                 "type" => "LONGBLOB",
                 "null" => true
             ],
+
             // Remarks
             "installer_remarks" => [
                 "type" => "TEXT",

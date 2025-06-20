@@ -27,6 +27,8 @@ class AuthController extends BaseController
         $userData = $this->userModelObj->where('user_email', $email)->first();
 
         if ($userData) {
+
+            //if ($userData['user_password'] === $password) {
             // Secure password verification
             if (password_verify($password, $userData['user_password'])) {
 
@@ -86,10 +88,10 @@ class AuthController extends BaseController
     public function logout()
     {
         // Update logout timestamp for the login session
-        $loginLogId = session()->get('login_log_id');
+        $loginLogId = session()->get('login_email');
         if ($loginLogId) {
             $this->authObj->update($loginLogId, [
-                'user_updatedAt' => date('Y-m-d H:i:s') // Ensure this field exists in the log table
+                'login_email' => $loginLogId, // Ensure this field exists in the log table
             ]);
         }
 

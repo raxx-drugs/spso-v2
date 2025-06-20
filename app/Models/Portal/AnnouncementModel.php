@@ -16,7 +16,9 @@ class AnnouncementModel extends Model
         "announcement_title",
         "announcement_description",
         "announcement_category",
-        "announcement_attachment",
+        "announcement_file_name",
+        "announcement_file_type",
+        "announcement_file",
         "announcement_status",
         "announcement_expiry_date",
     ];

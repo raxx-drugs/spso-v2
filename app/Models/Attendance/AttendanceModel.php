@@ -6,13 +6,18 @@ use CodeIgniter\Model;
 
 class AttendanceModel extends Model
 {
-    protected $table            = 'attendances';
-    protected $primaryKey       = 'id';
+    protected $table            = 'tbl_attendance';
+    protected $primaryKey       = 'attendance_id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = [];
+    protected $allowedFields    = [
+        "attendance_status",
+        "attendance_total_days_present",
+        "attendance_leave",
+        "attendance_approved",
+    ];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;

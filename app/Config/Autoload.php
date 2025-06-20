@@ -91,6 +91,8 @@ class Autoload extends AutoloadConfig
     public $helpers = [
         'custom',
         'date',
-        'expiry'
+        'expiry',
+        'notification',
+        'format_status'
     ];
 }

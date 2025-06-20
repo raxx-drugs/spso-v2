@@ -57,88 +57,136 @@ class ReqItSupportController extends BaseController
             ->with('errors', $this->reqItSupportObj->errors());
     }
 
-    public function fetchAll()
-    {
-        $records = $this->reqItSupportObj->findAll();
-        $data = [];
-        $modalId = 'viewReqItSupportModal';
-        $index = 1;
+ public function fetchAll()
+{
+    $records = $this->reqItSupportObj->findAll();
+    $data = [];
 
-        foreach ($records as $row) {
-            $id = $row['req_it_support_id'];
-            $data[] = [
-                $index++,
-                $row['req_it_solution_employee_name'],
-                $row['req_it_solution_description'],
-                $row['req_it_solution_request_date'],
-                $row['req_it_solution_status'],
-                view('components/action_button', [
-                    'id'          => $id,
-                    'view'        => base_url("api/req-it-support/{$id}"),
-                    'viewModalId' => $modalId,
-                    'delete'      => base_url("api/req-it-support/delete/{$id}"),
-                    'archive'     => base_url("api/req-it-support/archive/{$id}"),
-                ]),
-            ];
-        }
+    $viewModalId = 'viewReqItSupportModal';
+    $index = 1; // Start counter at 1   
 
-        return $this->response->setJSON(['data' => $data]);
+    foreach ($records as $row) {
+        $id = $row['req_it_solution_id'];
+        $data[] = [
+            $index++, // Use incremented index instead of actual ID
+            $row['req_it_solution_employee_name'] ?? 'N/A',
+            $row['req_it_solution_description'] ?? '',
+            $row['req_it_solution_request_date'] ?? '',
+            format_status($row['req_it_solution_status'] ?? 'N/A'),
+            view('components/buttons/action_button', [
+                'id'          => $id,
+                'view'        => base_url("api/req-it-support/{$id}"),
+                'viewModalId' => $viewModalId,
+                'delete'      => base_url("api/req-it-support/delete/{$id}"),
+                'archive'     => base_url("api/req-it-support/archive/{$id}"),
+            ]),
+        ];
     }
 
-    public function fetch($id)
-    {
-        $record = $this->reqItSupportObj->find($id);
+    return $this->response->setJSON(['data' => $data]);
+}
 
-        if ($record) {
-            return $this->response->setJSON([
-                'data'    => $record,
-                'status'  => 'success',
-                'message' => 'Data successfully fetched!',
-            ]);
-        }
+public function fetch($id)
+{
+    $record = $this->reqItSupportObj->find($id);
 
+    if ($record) {
+        // Fix malformed UTF-8 characters
+        array_walk_recursive($record, function (&$val) {
+            if (is_string($val) && !mb_check_encoding($val, 'UTF-8')) {
+                $val = mb_convert_encoding($val, 'UTF-8', 'UTF-8');
+            }
+        });
+
+        return $this->response->setJSON([
+            'data'    => $record,
+            'status'  => 'success',
+            'message' => 'Data successfully fetched!',
+        ]);
+    }
+
+    return $this->response->setJSON([
+        'status'  => 'error',
+        'message' => 'Support request not found.',
+    ])->setStatusCode(404);
+}
+
+
+public function update($id)
+{
+    if (!$this->reqItSupportObj->find($id)) {
         return $this->response->setJSON([
             'status'  => 'error',
             'message' => 'Support request not found.',
         ])->setStatusCode(404);
     }
 
-    public function update($id)
-    {
-        if (!$this->reqItSupportObj->find($id)) {
-            return $this->response->setJSON([
-                'status'  => 'error',
-                'message' => 'Support request not found.',
-            ])->setStatusCode(404);
+    $post = $this->request->getVar(); 
+    $data = $this->extractData($post);
+
+    if ($this->reqItSupportObj->update($id, $data)) {
+        $this->logActivity('update', 'IT Support Request', 'Successfully updated a support request.');
+        return redirect()->back()->with('success', 'Support request updated successfully.');
+    }
+
+    return $this->response->setJSON([
+        'status'  => 'error',
+        'message' => 'Failed to update support request.',
+        'errors'  => $this->reqItSupportObj->errors()
+    ])->setStatusCode(400);
+}
+
+
+public function archive($id)
+{
+    if ($record = $this->reqItSupportObj->find($id)) {
+        $dataToArchive = [
+            "archived_role"        => $_SESSION['role'],
+            "archived_email"       => $_SESSION['email'],
+            "archived_item_type"   => "req_it_support",
+            "archived_item_data"   => json_encode($record),
+            "archived_description" => "the item is archived"
+        ];
+
+        if ($this->archivedFileObj->insert($dataToArchive)) {
+            if ($this->reqItSupportObj->delete($id)) {
+                return redirect()->back()->with('success', 'Support request successfully archived!');
+            } else {
+                return redirect()->back()
+                    ->with('error', 'Failed to delete support request.')
+                    ->with('errors', $this->reqItSupportObj->errors());
+            }
         }
+    }
 
-        $post = $this->request->getRawInput();
-        $data = $this->extractData($post);
+    return redirect()->back()->with('error', 'Support request not found.');
+}
 
-        if ($this->reqItSupportObj->update($id, $data)) {
-            $this->logActivity('update', 'IT Support Request', 'Successfully updated a support request.');
-            return $this->response->setJSON([
-                'status'  => 'success',
-                'message' => 'Support request updated successfully.',
-            ]);
+public function delete($id)
+{
+    if ($record = $this->reqItSupportObj->find($id)) {
+        $dataToDelete = [
+            "deleted_role"        => $_SESSION['role'],
+            "deleted_email"       => $_SESSION['email'],
+            "deleted_item_type"   => "req_it_support",
+            "deleted_item_data"   => json_encode($record),
+            "deleted_description" => "the item is deleted"
+        ];
+
+        if ($this->deletedFileObj->insert($dataToDelete)) {
+            if ($this->reqItSupportObj->delete($id)) {
+                return redirect()->back()->with('success', 'Support request successfully deleted!');
+            } else {
+                return redirect()->back()
+                    ->with('error', 'Failed to delete support request.')
+                    ->with('errors', $this->reqItSupportObj->errors());
+            }
         }
-
-        return $this->response->setJSON([
-            'status'  => 'error',
-            'message' => 'Failed to update support request.',
-            'errors'  => $this->reqItSupportObj->errors(),
-        ])->setStatusCode(400);
     }
 
-    public function archive($id)
-    {
-        return $this->handleRemoveOrArchive($id, 'archive');
-    }
+    return redirect()->back()->with('error', 'Support request not found.');
+}
 
-    public function delete($id)
-    {
-        return $this->handleRemoveOrArchive($id, 'delete');
-    }
 
     private function handleRemoveOrArchive($id, $type = 'archive')
     {
@@ -170,13 +218,15 @@ class ReqItSupportController extends BaseController
     public function getStats()
     {
         $total    = $this->reqItSupportObj->countAll();
-        $pending  = $this->reqItSupportObj->where('req_it_solution_status', 'Pending')->countAllResults();
-        $resolved = $this->reqItSupportObj->where('req_it_solution_status', 'Resolved')->countAllResults();
+        $resolved  = $this->reqItSupportObj->where('req_it_solution_status', 'Resolved')->countAllResults();
+        $pending = $this->reqItSupportObj->where('req_it_solution_status', 'Pending')->countAllResults();
+        $cancelled = $this->reqItSupportObj->where('req_it_solution_status', 'Cancelled')->countAllResults();
 
         return $this->response->setJSON([
             'total'    => $total,
-            'pending'  => $pending,
-            'resolved' => $resolved,
+            'resolved'  => $resolved,
+            'pending' => $pending,
+            'cancelled' => $cancelled,
         ]);
     }
 }

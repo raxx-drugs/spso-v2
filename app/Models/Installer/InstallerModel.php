@@ -16,7 +16,9 @@ class InstallerModel extends Model
         "installer_image",
         "installer_name",
         "installer_description",
-        "installer_attachment",
+        "installer_file_name",
+        "installer_file_type",
+        "installer_file",
         "installer_remarks",
         "installer_status",
     ];

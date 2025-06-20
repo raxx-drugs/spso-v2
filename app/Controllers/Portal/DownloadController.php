@@ -16,7 +16,7 @@ class DownloadController extends BaseController
     private function extractData(array $post): array
     {
         $fields = [
-            "filename"      => "download_filename",
+            "file_name"     => "download_file_name",
             "file_type"     => "download_file_type",
             "file"          => "download_file",
             "remarks"       => "download_remarks",
@@ -26,7 +26,6 @@ class DownloadController extends BaseController
         ];
 
         $data = [];
-
         foreach ($fields as $inputKey => $dbKey) {
             if (!array_key_exists($inputKey, $post)) {
                 continue;
@@ -34,13 +33,11 @@ class DownloadController extends BaseController
 
             $value = $post[$inputKey];
 
-            // Skip null or empty string values
             if ($value === null || (is_string($value) && trim($value) === '')) {
                 continue;
             }
 
-            // Default "filename" and "remarks" to "N/A" if empty
-            $data[$dbKey] = in_array($inputKey, ['filename', 'remarks']) ? valueOrNA($value) : $value;
+            $data[$dbKey] = in_array($inputKey, ['remarks']) ? valueOrNA($value) : $value;
         }
 
         return $data;
@@ -49,21 +46,27 @@ class DownloadController extends BaseController
     {
         $post = $this->request->getPost();
         $file = $this->request->getFile('file');
-        
 
         if ($file && $file->isValid() && !$file->hasMoved()) {
             $binary = file_get_contents($file->getTempName());
-
-            $post['file']       = $binary;
-            $post['filename']   = $file->getClientName();
-            $post['file_type']  = $file->getClientMimeType();
+            
+            $post['file']        = $binary;
+            $post['file_name']   = $file->getClientName();
+            $post['file_type']   = $file->getClientMimeType();
         }
 
         $downloadData = $this->extractData($post);
 
-        if ($this->downloadObj->insert($downloadData)) {
+        // Attach file data if present
+        if (!empty($post['file'])) {
+            $downloadData['download_file']        = $post['file'];
+            $downloadData['download_file_name']    = $post['file_name'];
+            $downloadData['download_file_type']   = $post['file_type'];
+        }
 
-            $this->logActivity('create', 'Download', 'Successfully added a download item.');
+        if ($this->downloadObj->insert($downloadData)) {
+            // pinagdagdag na message
+            $this->logActivity('create', 'Downloads', 'Successfully added office supply.');
             return redirect()->back()->with('success', 'Download added successfully.');
         }
 
@@ -72,26 +75,26 @@ class DownloadController extends BaseController
             ->with('error', 'Failed to add download.')
             ->with('errors', $this->downloadObj->errors());
     }
+
     public function fetchAll()
     {
         $downloadData = $this->downloadObj->findAll();
         $data = [];
 
         $viewModalId = 'viewDownloadModal';
-        $index = 1; // Start counter at 1
+        $index = 1; // Start counter at 1   
 
         foreach ($downloadData as $row) {
             $id = $row['download_id'];
             $data[] = [
                 $index++, // Use incremented index instead of actual ID
-                $id,
-                $row['download_filename'] ?? 'N/A',
+                $row['download_file_name'] ?? 'N/A',
                 $row['download_file_type'] ?? '',
                 $row['download_remarks'] ?? '',
                 $row['download_permission'] ?? '',
-                $row['download_status'] ?? '',
+                format_status($row['download_status'] ?? 'N/A'),
                 $row['download_expiry_date'] ?? '',
-                view('components/action_button', [
+                view('components/buttons/action_button', [
                     'id'          => $id,
                     'view'        => base_url("api/download/{$id}"),
                     'viewModalId' => $viewModalId,
@@ -108,6 +111,13 @@ class DownloadController extends BaseController
         $downloadData = $this->downloadObj->find($id);
 
         if ($downloadData) {
+            // Fix malformed UTF-8 characters
+            array_walk_recursive($downloadData, function (&$val) {
+                if (is_string($val) && !mb_check_encoding($val, 'UTF-8')) {
+                    $val = mb_convert_encoding($val, 'UTF-8', 'UTF-8');
+                }
+            });
+
             return $this->response->setJSON([
                 'data' => $downloadData,
                 'status' => 'success',
@@ -117,9 +127,11 @@ class DownloadController extends BaseController
 
         return $this->response->setJSON([
             'status' => 'error',
-            'message' => 'Item not found.',
+            'message' => 'Download not found.',
         ])->setStatusCode(404);
     }
+
+
     public function update($id)
     {
         if (!$this->downloadObj->find($id)) {
@@ -129,15 +141,12 @@ class DownloadController extends BaseController
             ])->setStatusCode(404);
         }
 
-        $post = $this->request->getRawInput();
+        $post = $this->request->getVar(); 
         $downloadData = $this->extractData($post);
 
         if ($this->downloadObj->update($id, $downloadData)) {
             $this->logActivity('update', 'Download', 'Successfully updated a download item.');
-            return $this->response->setJSON([
-                'status' => 'success',
-                'message' => 'Data successfully updated!',
-            ]);
+            return redirect()->back()->with('success', 'Download updated successfully.');
         }
 
         return $this->response->setJSON([
@@ -146,40 +155,53 @@ class DownloadController extends BaseController
             'errors' => $this->downloadObj->errors()
         ])->setStatusCode(400);
     }
-    public function archive($id)
-    {
-        return $this->handleRemoveOrArchive($id, 'archive');
-    }
     public function delete($id)
     {
-        return $this->handleRemoveOrArchive($id, 'delete');
-    }
-    private function handleRemoveOrArchive($id, $type = 'archive')
+        if ($downloadData = $this->downloadObj->find($id)) {
+            $dataToDelete = [
+                "deleted_role" => $_SESSION['role'],
+                "deleted_email" => $_SESSION['email'],
+                "deleted_item_type" => "download",
+                "deleted_item_data" => json_encode($downloadData),
+                "deleted_description" => "the item is deleted"
+            ];
+
+            if ($this->deletedFileObj->insert($dataToDelete)) {
+                if ($this->downloadObj->delete($id)) {
+                    
+                   return redirect()->back()->with('success', 'Download Data successfully deleted!');
+                   
+                } else {
+                     return redirect()->back()
+                    ->with('error', 'Failed to delete download.')
+                    ->with('errors', $this->downloadObj->errors());
+                }
+            }
+        }
+        return redirect()->back()->with('error', 'Download not found.');
+    }    
+    public function archive($id)
     {
-        $record = $this->downloadObj->find($id);
-        if (!$record) {
-            return redirect()->back()->with('error', 'Item not found.');
+        if ($downloadData = $this->downloadObj->find($id)) {
+            $dataToArchive = [
+                "archived_role" => $_SESSION['role'],
+                "archived_email" => $_SESSION['email'],
+                "archived_item_type" => "download",
+                "archived_item_data" => json_encode($downloadData),
+                "archived_description" => "the item is archived"
+            ];
+
+            if ($this->archivedFileObj->insert($dataToArchive)) {
+                if ($this->downloadObj->delete($id)) {
+                   return redirect()->back()->with('success', 'Download Data successfully archived!');
+                } else {
+                     return redirect()->back()
+                    ->with('error', 'Failed to delete download.')
+                    ->with('errors', $this->downloadObj->errors());
+                }
+            }
         }
-
-        $logData = [
-            "{$type}d_role"        => session('role'),
-            "{$type}d_email"       => session('email'),
-            "{$type}d_item_type"   => "download",
-            "{$type}d_item_data"   => json_encode($record),
-            "{$type}d_description" => "the item is {$type}d",
-        ];
-
-
-        $logObj = $type === 'archive' ? $this->archivedFileObj : $this->deletedFileObj;
-
-        if ($logObj->insert($logData) && $this->downloadObj->delete($id)) {
-            $this->logActivity($type, "Download", "Successfully {$type} a download item.");
-            return redirect()->back()->with('success', "Download successfully {$type}d!");
-        }
-
-        return redirect()->back()
-            ->with('error', "Failed to {$type} download.")
-            ->with('errors', $this->downloadObj->errors());
+        return redirect()->back()->with('error', 'Download not found.');
     }
     public function getStats()
     {
@@ -195,6 +217,9 @@ class DownloadController extends BaseController
             'archived' => $archived,
         ]);
     }
+
+
+    // dont touch this
     public function viewFile($id)
     {
         $fileData = $this->downloadObj->find($id);
@@ -203,7 +228,7 @@ class DownloadController extends BaseController
             return $this->response->setStatusCode(404)->setBody('File not found.');
         }
 
-        $filename  = $fileData['download_filename'] ?? 'file.txt';
+        $filename  = $fileData['download_file_name'] ?? 'file.txt';
         $extension = pathinfo($filename, PATHINFO_EXTENSION);
 
         
@@ -221,8 +246,7 @@ class DownloadController extends BaseController
         $options->set('isHtml5ParserEnabled', true);
 
         $dompdf = new Dompdf($options);
-        $safeText = htmlentities($fileData['download_file']); // safer than htmlspecialchars
-        //$safeText = htmlspecialchars($fileData['download_file']); // prevent XSS
+        $safeText = htmlspecialchars($fileData['download_file']); // prevent XSS
         $html     = "<pre style='font-family: monospace;'>{$safeText}</pre>";
 
         $dompdf->loadHtml($html);
@@ -242,7 +266,7 @@ class DownloadController extends BaseController
             return $this->response->setStatusCode(404)->setBody('File not found.');
         }
 
-        $filename  = $fileData['download_filename'] ?? 'downloaded_file';
+        $filename = $fileData['download_file_name'] ?? 'downloaded_file';
         $extension = pathinfo($filename, PATHINFO_EXTENSION);
 
         // Append extension if missing

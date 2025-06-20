@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class ReqOfficeSupplyModel extends Model
 {
-    protected $table            = 'reqofficesupplies';
+    protected $table            = 'tbl_req_supply_requests';
     protected $primaryKey       = 'req_supply_id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';

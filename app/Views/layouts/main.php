@@ -1,9 +1,11 @@
-<?= $this->extend('layout/base') ?>
+<?= $this->extend('layouts/base') ?>
 
 <?= $this->section('body') ?>
 
+<link rel="stylesheet" href="<?= base_url('assets/css/layouts/main.css') ?>?v=1">
+
 <?php if (session()->has('user')): ?>
-    <div class="header"><?= $this->include('components/header') ?></div>
+    <div class="header"><?= $this->include('components/partials/header') ?></div>
 
     <main class="main" id="content">
         <div class="main-content">

@@ -75,13 +75,13 @@ class ReqLeaveController extends BaseController
                 $row['req_leave_employee_name'],
                 $row['req_leavle_leave_type'],
                 $row['req_leave_start_date'] . ' to ' . $row['req_leave_end_date'],
-                $row['req_leave_status'],
-                view('components/action_button', [
+                format_status($row['req_leave_status'] ?? 'N/A'),
+                view('components/buttons/action_button', [
                     'id'          => $id,
-                    'view'        => base_url("api/req-leave/{$id}"),
+                    'view'        => base_url("api/request/leave/{$id}"),
                     'viewModalId' => $modalId,
-                    'delete'      => base_url("api/req-leave/delete/{$id}"),
-                    'archive'     => base_url("api/req-leave/archive/{$id}"),
+                    'delete'      => base_url("api/request/leave/delete/{$id}"),
+                    'archive'     => base_url("api/request/leave/archive/{$id}"),
                 ]),
             ];
         }

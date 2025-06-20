@@ -19,9 +19,12 @@ class AnnouncementController extends BaseController
             "title"        => "announcement_title",
             "description"  => "announcement_description",
             "category"     => "announcement_category",
+            "file_name"     => "announcement_file_name",
+            "file_type"     => "announcement_file_type",
+            "file"          => "announcement_file", // raw binary
             "status"       => "announcement_status",
             "expiry_date"  => "announcement_expiry_date",
-            "attachment"   => "announcement_attachment", // raw binary
+            
         ];
 
         $data = [];
@@ -37,7 +40,7 @@ class AnnouncementController extends BaseController
                 continue;
             }
 
-            $data[$dbKey] = in_array($inputKey, ['title', 'description']) ? valueOrNA($value) : $value;
+            $data[$dbKey] = in_array($inputKey, ['description']) ? valueOrNA($value) : $value;
         }
 
         return $data;
@@ -49,23 +52,32 @@ class AnnouncementController extends BaseController
     public function add()
     {
         $post = $this->request->getPost();
-        $file = $this->request->getFile('attachment');
+        $file = $this->request->getFile('file');
 
         if ($file && $file->isValid() && !$file->hasMoved()) {
             $binary = file_get_contents($file->getTempName());
-            $post['attachment'] = $binary;
+            
+            $post['file']        = $binary;
+            $post['file_name']   = $file->getClientName();
+            $post['file_type']   = $file->getClientMimeType();
         }
 
         $announcementData = $this->extractData($post);
 
+        // Attach file data if present
+        if (!empty($post['file'])) {
+            $announcementData['announcement_file']        = $post['file'];
+            $announcementData['announcement_name']        = $post['file_name'];
+            $announcementData['announcement_file_type']   = $post['file_type'];
+        }
+
         if ($this->announcementObj->insert($announcementData)) {
-            $this->logActivity('create', 'Announcement', 'Successfully added an announcement.');
             return redirect()->back()->with('success', 'Announcement added successfully.');
         }
 
         return redirect()->back()
             ->withInput()
-            ->with('error', 'Failed to add announcement.')
+            ->with('error', 'Failed to add Announcement.')
             ->with('errors', $this->announcementObj->errors());
     }
 
@@ -80,12 +92,11 @@ class AnnouncementController extends BaseController
             $id = $row['announcement_id'];
             $data[] = [
                 $index++,
-                $id,
                 $row['announcement_title'] ?? 'N/A',
                 $row['announcement_category'] ?? '',
-                $row['announcement_status'] ?? '',
+                format_status($row['announcement_status'] ?? 'N/A'),
                 $row['announcement_expiry_date'] ?? '',
-                view('components/action_button', [
+                view('components/buttons/action_button', [
                     'id'          => $id,
                     'view'        => base_url("api/announcement/{$id}"),
                     'viewModalId' => $viewModalId,
@@ -103,6 +114,13 @@ class AnnouncementController extends BaseController
         $announcementData = $this->announcementObj->find($id);
 
         if ($announcementData) {
+            // Fix malformed UTF-8 characters
+            array_walk_recursive($announcementData, function (&$val) {
+                if (is_string($val) && !mb_check_encoding($val, 'UTF-8')) {
+                    $val = mb_convert_encoding($val, 'UTF-8', 'UTF-8');
+                }
+            });
+
             return $this->response->setJSON([
                 'data' => $announcementData,
                 'status' => 'success',
@@ -125,15 +143,12 @@ class AnnouncementController extends BaseController
             ])->setStatusCode(404);
         }
 
-        $post = $this->request->getRawInput();
+        $post = $this->request->getVar();
         $announcementData = $this->extractData($post);
 
         if ($this->announcementObj->update($id, $announcementData)) {
             $this->logActivity('update', 'Announcement', 'Successfully updated an announcement.');
-            return $this->response->setJSON([
-                'status' => 'success',
-                'message' => 'Data successfully updated!',
-            ]);
+            return redirect()->back()->with('success', 'Announcement updated successfully.');
         }
 
         return $this->response->setJSON([

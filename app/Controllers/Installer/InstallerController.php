@@ -4,11 +4,14 @@ namespace App\Controllers\Installer;
 
 use App\Controllers\BaseController;
 use CodeIgniter\HTTP\ResponseInterface;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use App\Traits\ActivityLoggerTrait;
+use App\Traits\NotificationTrait;
 
 class InstallerController extends BaseController
 {
-    use ActivityLoggerTrait;
+    use ActivityLoggerTrait,NotificationTrait;
 
     /**
      * Extracts installer data from the request post.
@@ -16,10 +19,12 @@ class InstallerController extends BaseController
     private function extractData(array $post): array
     {
         $fields = [
-            'image'        => 'installer_image',
+            'image'        => 'installer_image',//save as binary
             'name'         => 'installer_name',
             'description'  => 'installer_description',
-            'attachment'   => 'installer_attachment',
+            'file_name'    => 'installer_file_name',
+            'file_type'    => 'installer_file_type',
+            'file'         => 'installer_file',
             'remarks'      => 'installer_remarks',
             'status'       => 'installer_status',
         ];
@@ -37,7 +42,7 @@ class InstallerController extends BaseController
                 continue;
             }
 
-            $data[$dbKey] = in_array($inputKey, ['name', 'description']) ? valueOrNA($value) : $value;
+            $data[$dbKey] = in_array($inputKey, ['description']) ? valueOrNA($value) : $value;
         }
 
         return $data;
@@ -46,16 +51,37 @@ class InstallerController extends BaseController
     public function add()
     {
         $post = $this->request->getPost();
-        $file = $this->request->getFile('attachment');
+        $file = $this->request->getFile('file');
+        $image = $this->request->getFile('image');
 
         if ($file && $file->isValid() && !$file->hasMoved()) {
-            $post['attachment'] = file_get_contents($file->getTempName());
+            $binary = file_get_contents($file->getTempName());
+            
+            $post['file']        = $binary;
+            $post['file_name']   = $file->getClientName();
+            $post['file_type']   = $file->getClientMimeType();
         }
 
+        // Handle image upload as binary
+        if ($image && $image->isValid() && !$image->hasMoved()) {
+            $post['image'] = file_get_contents($image->getTempName());
+        }
+
+
         $installerData = $this->extractData($post);
+        // Attach file data if present
+        if (!empty($post['file'])) {
+            $installerData['installer_file']        = $post['file'];
+            $installerData['installer_file_name']   = $post['file_name'];
+            $installerData['installer_file_type']   = $post['file_type'];
+        }
+
+        // Image binary (already handled by extractData if present in $post)
+        if (!empty($post['image'])) {
+            $installerData['installer_image'] = $post['image'];
+        }
 
         if ($this->installerObj->insert($installerData)) {
-            $this->logActivity('create', 'Installer', 'Successfully added an installer.');
             return redirect()->back()->with('success', 'Installer added successfully.');
         }
 
@@ -69,25 +95,43 @@ class InstallerController extends BaseController
     {
         $installerData = $this->installerObj->findAll();
         $data = [];
-        $viewModalId = 'viewInstallerModal';
-        $index = 1;
+        $index = 1; // Start counter at 1
 
         foreach ($installerData as $row) {
             $id = $row['installer_id'];
+
+            // Convert binary image to base64 (if exists)
+            $imageData = $row['installer_image'] ?? null;
+            $imageElement = 'N/A';
+
+            if ($imageData) {
+                $base64 = base64_encode($imageData);
+                $imageElement = '<img src="data:image/jpeg;base64,' . $base64 . '" width="40" height="40" style="object-fit: cover; border-radius: 4px;" />';
+            }
+            // Generate download link
+            $downloadUrl = base_url("api/installer/originalFile/{$id}");
+            $downloadLink = "<a href='{$downloadUrl}' class='btn btn-sm btn-outline-primary' download>Download File</a>";
+
+
             $data[] = [
-                $index++,
-                $id,
+                $index++, // Use incremented index instead of actual ID
+                $imageElement,
                 $row['installer_name'] ?? 'N/A',
                 $row['installer_description'] ?? '',
+                $row['installer_file_name'] ?? 'N/A',
+                $row['installer_file_type'] ?? '',
                 $row['installer_remarks'] ?? '',
-                $row['installer_status'] ?? '',
-                view('components/action_button', [
-                    'id'          => $id,
-                    'view'        => base_url("api/installer/{$id}"),
-                    'viewModalId' => $viewModalId,
-                    'delete'      => base_url("api/installer/delete/{$id}"),
-                    'archive'     => base_url("api/installer/archive/{$id}"),
-                ]),
+                format_status($row['installer_status'] ?? 'N/A'),
+                $downloadLink,
+                
+                // view('components/buttons/action_button', [
+                //     'id'          => $id,
+                //     'view'        => base_url("api/installer/{$id}"),
+                //     // 'download'      => $downloadLink,
+                //     'delete'      => base_url("api/installer/delete/{$id}"),
+                //     'archive'     => base_url("api/installer/archive/{$id}"),
+                // ]),
+                
             ];
         }
 
@@ -96,11 +140,18 @@ class InstallerController extends BaseController
 
     public function fetch($id)
     {
-        $data = $this->installerObj->find($id);
+        $installerData = $this->installerObj->find($id);
 
-        if ($data) {
+          if ($installerData) {
+            // Fix malformed UTF-8 characters
+            array_walk_recursive($installerData, function (&$val) {
+                if (is_string($val) && !mb_check_encoding($val, 'UTF-8')) {
+                    $val = mb_convert_encoding($val, 'UTF-8', 'UTF-8');
+                }
+            });
+
             return $this->response->setJSON([
-                'data' => $data,
+                'data' => $installerData,
                 'status' => 'success',
                 'message' => 'Data successfully fetched!',
             ]);
@@ -108,7 +159,7 @@ class InstallerController extends BaseController
 
         return $this->response->setJSON([
             'status' => 'error',
-            'message' => 'Item not found.',
+            'message' => 'Installer not found.',
         ])->setStatusCode(404);
     }
 
@@ -139,42 +190,56 @@ class InstallerController extends BaseController
         ])->setStatusCode(400);
     }
 
-    public function archive($id)
-    {
-        return $this->handleRemoveOrArchive($id, 'archive');
-    }
-
     public function delete($id)
     {
-        return $this->handleRemoveOrArchive($id, 'delete');
-    }
+        if ($installerData = $this->installerObj->find($id)) {
+            $dataToDelete = [
+                "deleted_role" => $_SESSION['role'],
+                "deleted_email" => $_SESSION['email'],
+                "deleted_item_type" => "installer",
+                "deleted_item_data" => json_encode($installerData),
+                "deleted_description" => "the item is deleted"
+            ];
 
-    private function handleRemoveOrArchive($id, $type = 'archive')
+            if ($this->deletedFileObj->insert($dataToDelete)) {
+                if ($this->installerObj->delete($id)) {
+                    
+                   return redirect()->back()->with('success', 'Installer Data successfully deleted!');
+                   
+                } else {
+                     return redirect()->back()
+                    ->with('error', 'Failed to delete installer.')
+                    ->with('errors', $this->installerObj->errors());
+                }
+            }
+        }
+        return redirect()->back()->with('error', 'Download not found.');
+    }
+    public function archive($id)
     {
-        $record = $this->installerObj->find($id);
-        if (!$record) {
-            return redirect()->back()->with('error', 'Item not found.');
+        if ($installerData = $this->installerObj->find($id)) {
+            $dataToArchive = [
+                "archived_role"        => $_SESSION['role'],
+                "archived_email"       => $_SESSION['email'],
+                "archived_item_type"   => "installer",
+                "archived_item_data"   => json_encode($installerData),
+                "archived_description" => "the item is archived"
+            ];
+
+            if ($this->archivedFileObj->insert($dataToArchive)) {
+                if ($this->installerObj->delete($id)) {
+                    return redirect()->back()->with('success', 'Installer data successfully archived!');
+                } else {
+                    return redirect()->back()
+                        ->with('error', 'Failed to delete installer.')
+                        ->with('errors', $this->installerObj->errors());
+                }
+            }
         }
 
-        $logData = [
-            "{$type}d_role"        => session('role') ?? "admin",
-            "{$type}d_email"       => session('email') ?? "admin@gmail.com",
-            "{$type}d_item_type"   => "installer",
-            "{$type}d_item_data"   => json_encode($record),
-            "{$type}d_description" => "the item is {$type}d",
-        ];
-
-        $logObj = $type === 'archive' ? $this->archivedFileObj : $this->deletedFileObj;
-
-        if ($logObj->insert($logData) && $this->installerObj->delete($id)) {
-            $this->logActivity($type, 'Installer', "Successfully {$type}d an installer.");
-            return redirect()->back()->with('success', "Installer successfully {$type}d!");
-        }
-
-        return redirect()->back()
-            ->with('error', "Failed to {$type} installer.")
-            ->with('errors', $this->installerObj->errors());
+        return redirect()->back()->with('error', 'Installer not found.');
     }
+
 
     public function getStats()
     {
@@ -191,17 +256,78 @@ class InstallerController extends BaseController
         ]);
     }
 
-    public function viewAttachment($id)
+    public function viewFile($id)
     {
-        $data = $this->installerObj->find($id);
+        $fileData = $this->installerObj->find($id);
 
-        if (!$data || empty($data['installer_attachment'])) {
-            return $this->response->setStatusCode(404)->setBody('Attachment not found.');
+        if (!$fileData || empty($fileData['installer_file'])) {
+            return $this->response->setStatusCode(404)->setBody('File not found.');
         }
 
+        $filename  = $fileData['installer_file_name'] ?? 'file.txt';
+        $extension = pathinfo($filename, PATHINFO_EXTENSION);
+
+        
+
+        // If file is already a PDF, display it directly
+        if (strtolower($extension) === 'pdf') {
+            return $this->response
+                ->setHeader('Content-Type', 'application/pdf')
+                ->setHeader('Content-Disposition', 'inline; filename="' . $filename . '"')
+                ->setBody($fileData['installer_file']);
+        }
+
+        // Convert to PDF (e.g., for plain text, code)
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+
+        $dompdf = new Dompdf($options);
+        $safeText = htmlspecialchars($fileData['installer_file']); // prevent XSS
+        $html     = "<pre style='font-family: monospace;'>{$safeText}</pre>";
+
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
         return $this->response
-            ->setHeader('Content-Type', 'application/pdf') // Change MIME if needed
-            ->setHeader('Content-Disposition', 'inline; filename="installer_attachment.pdf"')
-            ->setBody($data['installer_attachment']);
+            ->setHeader('Content-Type', 'application/pdf')
+            ->setHeader('Content-Disposition', 'inline; filename="preview.pdf"')
+            ->setBody($dompdf->output());
+    }
+    public function downloadOriginal($id)
+    {
+        $fileData = $this->installerObj->find($id);
+
+        if (!$fileData || empty($fileData['installer_file'])) {
+            return $this->response->setStatusCode(404)->setBody('File not found.');
+        }
+
+        $filename = $fileData['installer_file_name'] ?? 'installer_file';
+        $extension = pathinfo($filename, PATHINFO_EXTENSION);
+
+        // Append extension if missing
+        if (!$extension) {
+            $mimeToExt = [
+                'application/pdf'        => 'pdf',
+                'text/plain'             => 'txt',
+                'application/javascript' => 'js',
+                'text/css'               => 'css',
+                'text/html'              => 'html',
+                'application/json'       => 'json',
+                'image/jpeg'             => 'jpg',
+                'image/png'              => 'png',
+                'application/zip'        => 'zip',
+            ];
+            $guessedExt = $mimeToExt[$fileData['installer_file_type']] ?? 'bin';
+            $filename .= '.' . $guessedExt;
+        }
+
+        $mimeType = $fileData['installer_file_type'] ?? 'application/octet-stream';
+
+        $this->logActivity("installer", "File", "Installer a {$filename} file.");
+        return $this->response
+            ->setHeader('Content-Type', $mimeType)
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->setBody($fileData['installer_file']);
     }
 }

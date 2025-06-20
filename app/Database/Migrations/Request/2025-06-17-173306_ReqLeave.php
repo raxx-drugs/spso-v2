@@ -24,7 +24,7 @@ class ReqLeave extends Migration
             ],
 
             // Leave Type
-            "req_leavle_leave_type" => [
+            "req_leave_type" => [
                 "type"       => "VARCHAR",
                 "constraint" => 100,
                 "null"       => false,

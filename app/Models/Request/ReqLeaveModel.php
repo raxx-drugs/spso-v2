@@ -14,7 +14,7 @@ class ReqLeaveModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         "req_leave_employee_name",
-        "req_leavle_leave_type",
+        "req_leave_type",
         "req_leave_leave_type_child",
         "req_leave_leave_reason",
         "req_leave_start_date",

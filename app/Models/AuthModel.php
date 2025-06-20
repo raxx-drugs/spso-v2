@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class AuthModel extends Model
 {
-    protected $table            = 'tbl_auth';
+    protected $table            = 'tbl_authorization';
     protected $primaryKey       = 'login_id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
@@ -17,6 +17,7 @@ class AuthModel extends Model
         "login_role",
         "login_name",
         "user_id_fk",
+        "user_createdAt",
     ];
 
     protected bool $allowEmptyInserts = false;

@@ -67,13 +67,13 @@ class ReqOfficeSupplyController extends BaseController
                 $row['req_supply_name'],
                 $row['req_supply_category'],
                 $row['req_supply_requested_quantity'],
-                $row['req_supply_status'],
-                view('components/action_button', [
+                format_status($row['req_supply_status'] ?? 'N/A'),
+                view('components/buttons/action_button', [
                     'id'          => $id,
-                    'view'        => base_url("api/req-supply/{$id}"),
+                    'view'        => base_url("api/request/office-supply/{$id}"),
                     'viewModalId' => $modalId,
-                    'delete'      => base_url("api/req-supply/delete/{$id}"),
-                    'archive'     => base_url("api/req-supply/archive/{$id}"),
+                    'delete'      => base_url("api/request/office-supply/delete/{$id}"),
+                    'archive'     => base_url("api/request/office-supply/archive/{$id}"),
                 ]),
             ];
         }

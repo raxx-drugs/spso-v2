@@ -78,6 +78,11 @@ class UserController extends BaseController
         }
 
         $userData = $this->extractData($post);
+            // Hash the password before saving
+        if (!empty($userData['user_password'])) {
+            $userData['user_password'] = password_hash($userData['user_password'], PASSWORD_DEFAULT);
+        }
+
         $userData['user_image']     = $post['image']     ?? null;
         $userData['user_signature'] = $post['signature'] ?? null;
 
@@ -103,11 +108,10 @@ class UserController extends BaseController
             $id = $row['user_id'];
             $data[] = [
                 $index++,
-                $id,
                 $row['user_fname'] . ' ' . $row['user_lname'],
                 $row['user_email'],
                 $row['user_role'],
-                view('components/action_button', [
+                view('components/buttons/action_button', [
                     'id'          => $id,
                     'view'        => base_url("api/user/{$id}"),
                     'viewModalId' => $viewModalId,
@@ -205,13 +209,13 @@ class UserController extends BaseController
     public function getStats()
     {
         $total    = $this->userModelObj->countAll();
-        $active   = $this->userModelObj->where('user_role IS NOT NULL')->countAllResults(); // customize as needed
-        $archived = $this->userModelObj->where('user_role', 'Archived')->countAllResults(); // example
+        $admin   = $this->userModelObj->where('user_role', 'admin')->countAllResults(); // customize as needed
+        $user = $this->userModelObj->where('user_role', 'user')->countAllResults(); // example
 
         return $this->response->setJSON([
             'total'    => $total,
-            'active'   => $active,
-            'archived' => $archived,
+            'admin'   => $admin,
+            'user' => $user,
         ]);
     }
 

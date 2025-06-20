@@ -1,0 +1,15 @@
+.header-btn{
+    padding: .5rem 1rem;
+    background-color: #cfe2ff; /* example color for bg-primary-subtle */
+    border: 1px solid #9ec5fe; /* example border color for border-primary-subtle */
+    border-radius: 0.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem; /* gap-2 */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* shadow-sm */
+}
+
+.header-btn i{
+    color: green;    
+}
